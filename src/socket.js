@@ -1,6 +1,10 @@
 import { io } from "socket.io-client";
+import dotenv from "dotenv";
+dotenv.config();
 
-const URL = "http://localhost:3001";
+const baseURL = process.env.REACT_APP_BASEURL;
+
+const URL = baseURL;
 const socket = io(URL, { autoConnect: false });
 
 // const userInfo = sessionStorage;
