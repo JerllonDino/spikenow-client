@@ -9,6 +9,7 @@ const myAxios = axios.create({
   baseURL: baseURL,
   headers: {
     "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*",
   },
 });
 
