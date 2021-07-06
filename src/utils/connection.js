@@ -1,7 +1,12 @@
 import axios from "axios";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const baseURL = process.env.REACT_APP_BASEURL;
 
 const myAxios = axios.create({
-  baseURL: "http://localhost:3001",
+  baseURL: baseURL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -9,6 +14,7 @@ const myAxios = axios.create({
 
 myAxios.interceptors.request.use(
   function (config) {
+    console.log(baseURL);
     // Do something before request is sent
     config.headers.Authorization = sessionStorage.getItem("token");
     return config;

@@ -4,6 +4,10 @@ import { GoogleLogin, GoogleLogout } from "react-google-login";
 import { useHistory } from "react-router";
 import { BiLogOut } from "react-icons/bi";
 import socket from "../socket";
+import dotenv from "dotenv";
+dotenv.config();
+
+const clientID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
 export const Login = ({ text }) => {
   const history = useHistory();
@@ -25,7 +29,7 @@ export const Login = ({ text }) => {
   const handleFailure = async (error) => console.log(error);
   return (
     <GoogleLogin
-      clientId="886519749145-kjltr7kubuadpgpnli3lfh10bb9g0rn8.apps.googleusercontent.com"
+      clientId={clientID}
       render={(renderProps) => (
         <button
           onClick={renderProps.onClick}
@@ -56,7 +60,7 @@ export const Logout = ({ text }) => {
   }
   return (
     <GoogleLogout
-      clientId="886519749145-kjltr7kubuadpgpnli3lfh10bb9g0rn8.apps.googleusercontent.com"
+      clientId={clientID}
       accessType="offline"
       onLogoutSuccess={logout}
       onFailure={logout}
