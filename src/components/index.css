@@ -1,0 +1,52 @@
+html,
+body {
+  height: 100%;
+}
+
+.navbar {
+  padding: 0;
+}
+
+.nav-link {
+  padding: 1rem 2.62rem !important;
+  position: relative;
+}
+
+.nav-link {
+  color: #000 !important;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+nav input.form-control {
+  width: auto;
+  background-color: #f2f2f2;
+  border-style: none;
+}
+
+#btn-spike {
+  border: 3px solid #0181ff;
+  border-radius: 0.25rem;
+  background-color: #0181ff;
+  color: #fff;
+  padding: 0.5rem 1.5rem;
+  text-align: center;
+  font-weight: 600;
+  display: block;
+  transition: all 0.2s ease-in-out;
+  white-space: nowrap;
+}
+
+#btn-spike:hover {
+  background-color: white;
+  color: #0181ff;
+}
+
+#chat-box:hover {
+  background-color: #f6f6f6;
+  cursor: pointer;
+}
+
+.cursor-pointer:hover {
+  cursor: pointer;
+}
