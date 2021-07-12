@@ -18,10 +18,10 @@ export const Login = ({ text }) => {
     });
 
     const { token, email, full_name, id } = await res.data;
-    sessionStorage.setItem("token", token);
-    sessionStorage.setItem("email", email);
-    sessionStorage.setItem("full_name", full_name);
-    sessionStorage.setItem("id", id);
+    localStorage.setItem("token", token);
+    localStorage.setItem("email", email);
+    localStorage.setItem("full_name", full_name);
+    localStorage.setItem("id", id);
     if (token) {
       history.push("/web/chat");
     }
@@ -41,7 +41,7 @@ export const Login = ({ text }) => {
       )}
       onSuccess={handleLogin}
       onFailure={handleFailure}
-      scope="https://mail.google.com/"
+      scope="https://mail.google.com/ https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/contacts https://www.googleapis.com/auth/contacts.other.readonly"
       cookiePolicy={"single_host_origin"}
       accessType="offline"
       responseType="code"
@@ -53,7 +53,7 @@ export const Login = ({ text }) => {
 export const Logout = ({ text }) => {
   const history = useHistory();
   async function logout() {
-    sessionStorage.clear();
+    localStorage.clear();
     socket.disconnect();
     history.push("/");
     return;

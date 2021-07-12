@@ -1,28 +1,60 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AiOutlinePlusSquare } from "react-icons/ai";
 import { Form, Modal, Button, Spinner } from "react-bootstrap";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 
-const NewEmail = ({
+const NewNote = ({
   showNote,
   setShowNote,
   isAddingNote,
   onSubmit,
-  setShow,
+  onDelete,
+  selectedNote,
+  setShowNewEmail,
 }) => {
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
+  const [isUpdate, setIsUpdate] = useState(false);
+
+  useEffect(() => {
+    console.log(selectedNote);
+    if (selectedNote.length > 0) {
+      setIsUpdate(true);
+      setTitle(selectedNote[0].title);
+      setText(selectedNote[0].text);
+      setShowNote(true);
+      console.log(selectedNote);
+    }
+  }, [selectedNote]);
 
   const handleClose = (isBack = false) => {
+    setTitle("");
+    setText("");
+    setIsUpdate(false);
     setShowNote(false);
-    setShow(isBack);
+    setShowNewEmail(isBack);
+  };
+
+  const handleSave = () => {
+    console.log("isUpdate?", isUpdate);
+    console.log(selectedNote);
+    if (isUpdate) {
+      onSubmit({ title, text, id: selectedNote[0]._id });
+    } else {
+      onSubmit({ title, text });
+    }
+  };
+
+  const handleDelete = () => {
+    console.log("deletes");
+    onDelete(selectedNote[0]._id);
   };
 
   return (
     <Modal show={showNote} onHide={handleClose}>
       <Modal.Header closeButton>
-        <Modal.Title>New Note</Modal.Title>
+        <Modal.Title>Note</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         <Form>
@@ -55,7 +87,14 @@ const NewEmail = ({
         >
           Back
         </Button>
-        <Button variant="primary" onClick={() => onSubmit(title, text)}>
+        <Button
+          variant="danger"
+          className={`${!isUpdate ? "d-none" : ""}`}
+          onClick={handleDelete}
+        >
+          Delete Note
+        </Button>
+        <Button variant="primary" onClick={handleSave}>
           {" "}
           {isAddingNote ? (
             <Spinner
@@ -68,11 +107,11 @@ const NewEmail = ({
           ) : (
             <AiOutlinePlusSquare />
           )}{" "}
-          Add Note
+          Save Note
         </Button>
       </Modal.Footer>
     </Modal>
   );
 };
 
-export default NewEmail;
+export default NewNote;

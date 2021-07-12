@@ -1,36 +1,67 @@
 import { useState, useEffect, useRef } from "react";
-import { Card, Form, Button, Spinner } from "react-bootstrap";
+import { Card, Form, Button, Spinner, Dropdown } from "react-bootstrap";
 import { HiOutlineAtSymbol } from "react-icons/hi";
 import { BiCode } from "react-icons/bi";
-import { FaLessThan } from "react-icons/fa";
-import { FaPaperPlane } from "react-icons/fa";
+import { FaLessThan, FaPaperPlane } from "react-icons/fa";
+import { AiOutlinePlusCircle, AiFillAudio } from "react-icons/ai";
+import { BsCameraVideoFill } from "react-icons/bs";
 import { Logout } from "../../components/GoogleAuth";
+import { v4 } from "uuid";
 
 const ChatBody = ({
   onSubmit,
   receiverName,
   receiverEmail,
+  setSelectedEmail,
   message,
+  subject,
+  setSubject,
   setMessage,
   isShowBody,
   setShowBody,
   bubble,
   isSending,
-  setShow,
+  setShowNewEmail,
   setShowOptions,
   setNewEmail,
 }) => {
+  const [isFocusMessage, setIsFocusMessage] = useState(false);
   const messagesEndRef = useRef(null);
-
   const handleShow = () => {
     setShowOptions(false);
     setNewEmail(receiverEmail);
-    setShow(true);
+    setShowNewEmail(true);
+  };
+
+  const handleCloseBody = () => {
+    setShowBody(false);
+    setSelectedEmail("");
   };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [bubble]);
+
+  const handleSubmit = () => {
+    setIsFocusMessage(false);
+    onSubmit();
+  };
+
+  const handleSendMeeting = (isVideo) => {
+    const roomID = v4();
+    const messageHTML = `
+        <p>Join ${isVideo ? "Video" : "Audio"} Meeting</p>
+        <a
+        class="btn btn-primary"
+          href="/web/meeting/${roomID}/${isVideo ? 1 : 0}"
+          target="_blank"
+        >
+          Join Meeting
+        </a>
+      `;
+    // setMessage(messageHTML);
+    onSubmit(receiverEmail, "Join Spike Replica Meeting", messageHTML);
+  };
 
   return (
     <>
@@ -45,7 +76,7 @@ const ChatBody = ({
               {isShowBody ? (
                 <FaLessThan
                   className="cursor-pointer mr-2"
-                  onClick={() => setShowBody(false)}
+                  onClick={handleCloseBody}
                 />
               ) : (
                 ""
@@ -82,7 +113,25 @@ const ChatBody = ({
             {bubble}
             <div ref={messagesEndRef}></div>
           </div>
-          <div>
+          <div
+            className="d-flex flex-column m-0 p-0"
+            onFocus={(e) => setIsFocusMessage(true)}
+            onBlur={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget)) {
+                // Not triggered when swapping focus between children
+                setIsFocusMessage(false);
+              }
+            }}
+          >
+            <Form.Control
+              type="text"
+              style={{ fontSize: ".7rem", fontWeight: "bold" }}
+              className={`rounded-0 border-right-0 border-left-0 shadow-none m-0 ${
+                isFocusMessage ? "d-inline-block" : "d-none"
+              }`}
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+            />
             <div className="d-flex" style={{ height: "50px" }}>
               <Form.Control
                 type="text"
@@ -100,10 +149,34 @@ const ChatBody = ({
                 {" "}
                 <BiCode />{" "}
               </Button>
+              <Dropdown className="border-top border-bottom">
+                <Dropdown.Toggle
+                  variant="link"
+                  className="bg-white rounded-0 m-0 h-100 "
+                >
+                  <AiOutlinePlusCircle />
+                </Dropdown.Toggle>
+
+                <Dropdown.Menu>
+                  <Dropdown.Item onClick={() => handleSendMeeting(true)}>
+                    <BsCameraVideoFill /> Video Meeting
+                  </Dropdown.Item>
+                  <Dropdown.Item onClick={() => handleSendMeeting(false)}>
+                    <AiFillAudio /> Audio Meeting
+                  </Dropdown.Item>
+                </Dropdown.Menu>
+              </Dropdown>
+              {/* <Button
+                variant="link"
+                className="bg-white border-top border-bottom rounded-0 m-0"
+                onClick={openNewWindow}
+              >
+                <AiOutlinePlusCircle />
+              </Button> */}
               <Button
                 variant="link"
                 className="bg-white border-top border-bottom rounded-0 m-0"
-                onClick={() => onSubmit()}
+                onClick={handleSubmit}
                 disabled={isSending ? true : false}
               >
                 {" "}

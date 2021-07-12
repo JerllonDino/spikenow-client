@@ -1,8 +1,11 @@
 import React from "react";
 import { GrNotes } from "react-icons/gr";
 import { Card } from "react-bootstrap";
+import { getTimeFromDate } from "../../../components/GlobalHelpers";
 
-const NoteBox = ({ noteId, title, text, time, onClick }) => {
+const ContactsBox = ({ note, onClick }) => {
+  const { id, text, title, updatedAt } = note;
+  const time = new Date(updatedAt);
   function removeTags(str) {
     if (str === null || str === "") return false;
     else str = str.toString();
@@ -14,7 +17,7 @@ const NoteBox = ({ noteId, title, text, time, onClick }) => {
     <Card
       className="rounded-0 border-0 p-3"
       id="chat-box"
-      onClick={() => onClick(noteId)}
+      onClick={() => onClick([note])}
     >
       <div className="d-flex">
         <div className="mr-3 my-auto">
@@ -37,11 +40,11 @@ const NoteBox = ({ noteId, title, text, time, onClick }) => {
           </small>
         </div>
         <div className="ml-auto">
-          <small>{time}</small>
+          <small>{getTimeFromDate(time)}</small>
         </div>
       </div>
     </Card>
   );
 };
 
-export default NoteBox;
+export default ContactsBox;

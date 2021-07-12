@@ -50,3 +50,7 @@ nav input.form-control {
 .cursor-pointer:hover {
   cursor: pointer;
 }
+
+.dropdown-toggle::after {
+  display: none;
+}

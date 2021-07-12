@@ -4,10 +4,10 @@ dotenv.config();
 
 const baseURL = process.env.REACT_APP_BASEURL;
 
-const URL = baseURL;
-const socket = io(URL, { autoConnect: false });
+// const URL = baseURL;
+const socket = io(baseURL, { autoConnect: false });
 
-// const userInfo = sessionStorage;
+// const userInfo = localStorage;
 
 socket.onAny((event, ...args) => {
   console.log(event, args);

@@ -16,9 +16,8 @@ const myAxios = axios.create({
 
 myAxios.interceptors.request.use(
   function (config) {
-    console.log(baseURL);
     // Do something before request is sent
-    config.headers.Authorization = sessionStorage.getItem("token");
+    config.headers.Authorization = localStorage.getItem("token");
     return config;
   },
   function (error) {

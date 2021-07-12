@@ -2,23 +2,22 @@ import { createContext } from "react";
 import { Switch } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
 import Chat from "../containers/Auth";
-import socket from "../socket";
+import Meeting from "../containers/Auth/Meeting";
 
 export const AuthorizedUserContext = createContext();
 
 const AuthorizedRoutes = () => {
-  const userInfo = sessionStorage;
-
-  if (userInfo) {
-    const { id, email } = userInfo;
-    socket.auth = { id, email };
-    console.log("should be connected");
-  }
+  const userInfo = localStorage;
 
   return (
     <AuthorizedUserContext.Provider value={{ userInfo }}>
       <Switch>
         <ProtectedRoute exact path="/web/chat" component={Chat} />
+        <ProtectedRoute
+          exact
+          path="/web/meeting/:roomID/:isVideo"
+          component={Meeting}
+        />
       </Switch>
     </AuthorizedUserContext.Provider>
   );

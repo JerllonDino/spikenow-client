@@ -1,11 +1,12 @@
 import { FaStickyNote } from "react-icons/fa";
 import { Form, Modal, Button, Spinner } from "react-bootstrap";
 import { FaPaperPlane } from "react-icons/fa";
+import { RiTodoLine } from "react-icons/ri";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 
 const NewEmail = ({
-  show,
+  showNewEmail,
   showOptions,
   handleClose,
   onSubmit,
@@ -18,7 +19,7 @@ const NewEmail = ({
   isSending,
 }) => {
   return (
-    <Modal show={show} onHide={handleClose}>
+    <Modal show={showNewEmail} onHide={handleClose}>
       <Modal.Header closeButton>
         <Modal.Title>Message</Modal.Title>
       </Modal.Header>
@@ -55,15 +56,24 @@ const NewEmail = ({
           </Form.Group>
         </Form>
       </Modal.Body>
-      <Modal.Footer className="d-flex">
-        <Button
-          variant="primary"
-          className={`mr-auto ${showOptions ? "" : "d-none"}`}
-          onClick={() => handleClose(true)}
-        >
-          <FaStickyNote />
-          Add Note
-        </Button>
+      <Modal.Footer className="d-flex justify-content-between">
+        <div>
+          <Button
+            variant="primary"
+            className={`${showOptions ? "" : "d-none"}`}
+            onClick={() => handleClose("note")}
+          >
+            <FaStickyNote />
+            Add Note
+          </Button>
+          <Button
+            variant="primary"
+            className={`ml-2 ${showOptions ? "" : "d-none"}`}
+            onClick={() => handleClose("task")}
+          >
+            <RiTodoLine /> Add Task
+          </Button>
+        </div>
         <Button
           variant="link"
           className="bg-white"

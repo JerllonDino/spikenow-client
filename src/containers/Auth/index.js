@@ -1,186 +1,39 @@
-import { useContext, useState, useEffect } from "react";
+import {
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useReducer,
+} from "react";
 import { Container, Row, Col, Spinner } from "react-bootstrap";
-import myAxios from "../../utils/connection";
 import { AuthorizedUserContext } from "../../components/AuthorizedRoutes";
 import ChatBody from "./ChatBody";
 import ChatSideBar from "./ChatSideBar";
-import ChatBox from "./ChatBox";
+import ChatBox from "./boxes/ChatBox";
 import ChatBubble from "./ChatBubble";
-import NewEmail from "./NewEmail";
-import NewNote from "./NewNote";
-import NoteBox from "./NoteBox";
+import NewEmail from "./modals/NewEmail";
+import NewNote from "./modals/NewNote";
+import NoteBox from "./boxes/NoteBox";
 import socket from "../../socket";
-
-const stripContact = (string) => {
-  let email = string.substring(
-    string.lastIndexOf("<") + 1,
-    string.lastIndexOf(">")
-  );
-
-  if (email) {
-    let name = string.substr(0, string.indexOf("<"));
-    name = name.replace(/['"]+/g, "");
-    return { email, name };
-  }
-  return string;
-};
-
-const sortEmail = (userEmail, emails, isDuplicate = true, sort = "desc") => {
-  let prevSender = [];
-  const reduce = emails.reduce(function (filtered, option) {
-    // return filtered.includes(option) ? filtered : [...filtered, option];
-    const { id, snippet, payload } = option;
-    const senderString = payload.headers.find((data) => {
-      return data.name === "From" || data.name === "from";
-    });
-
-    const receiverString = payload.headers.find((data) => {
-      return data.name === "To" || data.name === "to";
-    });
-
-    const strippedFrom = stripContact(senderString.value);
-    const strippedTo = stripContact(receiverString.value);
-
-    const sender = {
-      name: strippedFrom.name ? strippedFrom.name : strippedFrom,
-      email: strippedFrom.email ? strippedFrom.email : strippedFrom,
-    };
-
-    const receiver = {
-      name: strippedTo.name ? strippedTo.name : strippedTo,
-      email: strippedTo.email ? strippedTo.email : strippedTo,
-    };
-
-    let contact = {
-      name: sender.name,
-      email: sender.email,
-    };
-
-    if (sender.email === userEmail) {
-      contact.email = receiver.email;
-      contact.name = receiver.name;
-    }
-
-    const subject = payload.headers.find((data) => {
-      return data.name === "Subject" || data.name === "subject";
-    });
-
-    const date = payload.headers.find((data) => {
-      return data.name === "Date" || data.name === "date";
-    });
-
-    const time = new Date(date.value);
-
-    let content = snippet;
-
-    if (!isDuplicate) {
-      if (
-        payload.mimeType === "text/plain" ||
-        payload.mimeType === "text/html"
-      ) {
-        let buff = new Buffer(payload.body.data, "base64");
-        content = buff.toString("ascii");
-        // console.log(option);
-        if (payload.mimeType === "text/html") {
-          console.log(content);
-        }
-      } else {
-        if (payload.parts[0].body.data) {
-          console.log(option);
-          let buff = new Buffer(payload.parts[1].body.data, "base64");
-          content = buff.toString("ascii");
-        }
-      }
-    }
-
-    if (
-      prevSender.length > 0 &&
-      prevSender.includes(contact.email) &&
-      isDuplicate
-    ) {
-      return filtered;
-    }
-    prevSender.push(contact.email);
-
-    filtered.push({
-      id,
-      contact,
-      sender,
-      receiver,
-      subject,
-      snippet,
-      time,
-      content,
-    });
-
-    return filtered;
-  }, []);
-
-  let sortedEmail = reduce.slice().sort((a, b) => b.time - a.time);
-
-  if (sort === "asc") {
-    sortedEmail = reduce.slice().sort((a, b) => a.time - b.time);
-  }
-
-  return sortedEmail;
-};
-
-const addReceivedEmails = (emails) => {
-  const newEmails = emails.slice().sort((a, b) => b.time - a.time);
-
-  return newEmails.reduce((filtered, email) => {
-    // console.log(email);
-    const existing = filtered
-      ? filtered.find((data) => data.contact.email === email.contact.email)
-      : null;
-    if (existing) {
-      return filtered;
-    }
-    filtered.push(email);
-    return filtered;
-  }, []);
-};
-
-async function getEmails() {
-  console.log("getting");
-  const res = await myAxios.get("/getEmails");
-  const data = await res.data;
-  return data;
-}
-
-async function getMessages(email, userEmail) {
-  const res = await myAxios.get(`/getMessages/${email}`);
-  const data = await res.data;
-  const sortedMessages = sortEmail(userEmail, data, false, "asc");
-  return sortedMessages;
-}
-
-async function sendMessage(to, subject, message) {
-  const res = await myAxios.post("/email", {
-    to: to,
-    subject: subject,
-    message: message,
-  });
-  const data = await res.data;
-  // alert(data.message);
-  return data;
-}
-
-async function addNote(title, text, userID) {
-  const res = await myAxios.post("/addNote", {
-    title: title,
-    text: text,
-    userID: userID,
-  });
-  const data = await res.data;
-  return data;
-}
-
-async function getNotes(userID) {
-  const res = await myAxios.get(`/getNotes/${userID}`);
-  const data = await res.data;
-  return data;
-}
+import LoadingOverlay from "../../components/LoadingOverlay";
+import {
+  getEmails,
+  sortEmail,
+  getNotes,
+  getTasks,
+  addReceivedEmails,
+  getMessages,
+  sendMessage,
+  updateNote,
+  addNote,
+  deleteNote,
+  addTask,
+  updateTask,
+  deleteTask,
+} from "./helpers/ChatHelpers";
+import { getTimeFromDate } from "../../components/GlobalHelpers";
+import NewTask from "./modals/NewTask";
+import TaskBox from "./boxes/TaskBox";
 
 const Chat = () => {
   const { userInfo } = useContext(AuthorizedUserContext);
@@ -196,54 +49,65 @@ const Chat = () => {
   const [isSending, setIsSending] = useState(false);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [connectedUsers, setConnectedUsers] = useState([]);
-  const [show, setShow] = useState(false);
+  const [showNewEmail, setShowNewEmail] = useState(false);
   const [showNote, setShowNote] = useState(false);
+  const [showTask, setShowTask] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [newSubject, setNewSubject] = useState("");
   const [newMessage, setNewMessage] = useState("");
   const [showOptions, setShowOptions] = useState("");
   const [isAddingNote, setIsAddingNote] = useState(false);
+  const [isAddingTask, setIsAddingTask] = useState(false);
   const [todayNotes, setTodayNotes] = useState([]);
+  const [todayTasks, setTodayTasks] = useState([]);
   const [selectedNote, setSelectedNote] = useState([]);
+  const [selectedTask, setSelectedTask] = useState([]);
+  const [isDeletingNote, setIsDeletingNote] = useState(false);
+  const [isDeletingTask, setIsDeletingTask] = useState(false);
+  const [activeNavButton, setActiveNavButton] = useState("chat");
 
-  const handleClose = (isShowNote = false) => {
-    setNewEmail("");
-    setNewMessage("");
-    setNewSubject("");
-    setShowNote(isShowNote);
-    setShow(false);
-  };
+  const handleTodayNotes = useCallback((notes) => {
+    console.log("notes?");
+    setTodayNotes(notes);
+    console.log(notes);
+  }, []);
 
-  useEffect(() => {
-    getEmails().then((retrievedEmails) => {
-      const sortedEmails = sortEmail(userInfo.email, retrievedEmails);
-      setEmails(sortedEmails);
-      console.log("useEff got it");
-    });
-    getNotes(userInfo.id).then((notes) => {
-      console.log("notes?");
-      setTodayNotes(notes);
-      console.log(notes);
-    });
+  const handleTodayTasks = useCallback((tasks) => {
+    console.log("tasks?");
+    setTodayTasks(tasks);
+    console.log(tasks);
   }, []);
 
   useEffect(() => {
-    socket.connect();
-    socket.on("private message", ({ content, from, to }) => {
-      const user = connectedUsers.find((user) => user.userID === from);
-      console.log("from pm", content);
-      if (user && user.email === selectedEmail) {
-        const chat = <ChatBubble key={content[0].id} message={content[0]} />;
-        setBubble([...bubble, chat]);
-      }
-      content[0].time = new Date(content[0].time);
-      content[0].contact = content[0].sender;
-      const newEmails = addReceivedEmails(
-        [...emails, content[0]],
-        userInfo.email
-      );
-      setEmails(newEmails);
-    });
+    if (activeNavButton === "chat") {
+      socket.connect();
+      const { id, email } = userInfo;
+      socket.emit("join-chat-room", { id, email });
+      getEmails().then((retrievedEmails) => {
+        const sortedEmails = sortEmail(userInfo.email, retrievedEmails);
+        setEmails(sortedEmails);
+        console.log("useEff got it");
+      });
+    }
+    return () => {
+      socket.disconnect();
+    };
+  }, [activeNavButton]);
+
+  useEffect(() => {
+    if (!isAddingNote || !isDeletingNote) {
+      getNotes(userInfo.id).then(handleTodayNotes);
+    }
+  }, [isAddingNote, isDeletingNote, handleTodayNotes, userInfo.id]);
+
+  useEffect(() => {
+    if (!isAddingTask || !isDeletingTask) {
+      getTasks(userInfo.id).then(handleTodayTasks);
+    }
+  }, [isAddingTask, isDeletingTask, handleTodayTasks, userInfo.id]);
+
+  useEffect(() => {
+    socket.on("private message", handlePrivateMessage);
 
     socket.on("users", (users) => {
       console.log("connected users retrieved");
@@ -251,6 +115,7 @@ const Chat = () => {
     });
 
     socket.on("user connected", (user) => {
+      console.log("user just connected");
       setConnectedUsers([...connectedUsers, user]);
     });
 
@@ -264,14 +129,44 @@ const Chat = () => {
     });
 
     return () => {
+      socket.off("join-chat-room");
       socket.off("users");
-      socket.off("private message");
+
       socket.off("user connected");
       socket.off("user disconnected");
     };
-  });
+  }, [emails, bubble]);
+
+  const handlePrivateMessage = useCallback(
+    ({ content, from, to }) => {
+      console.log("bubbles", bubble);
+      console.log("current emails retreived", emails);
+      const user = connectedUsers.find((user) => user.userID === from);
+      console.log("from pm", connectedUsers);
+      if (user && user.email === selectedEmail) {
+        const chat = <ChatBubble key={content[0].id} message={content[0]} />;
+        setBubble([...bubble, chat]);
+      }
+      content[0].time = new Date(content[0].time);
+      content[0].contact = content[0].sender;
+
+      const newEmails = addReceivedEmails([...emails, content[0]]);
+      setEmails(newEmails);
+    },
+    [emails, bubble, connectedUsers, selectedEmail]
+  );
+
+  const handleClose = (modalShow = "") => {
+    setNewEmail("");
+    setNewMessage("");
+    setNewSubject("");
+    setShowNote(modalShow === "note" ? true : false);
+    setShowTask(modalShow === "task" ? true : false);
+    setShowNewEmail(false);
+  };
 
   const setSelectedContact = async (email, name) => {
+    setShowBody(true);
     if (email !== selectedEmail) {
       setSelectedName(name);
       setSelectedEmail(email);
@@ -302,9 +197,7 @@ const Chat = () => {
             receiver={receiver}
             onClick={setSelectedContact}
             email={contact.email}
-            time={`${(time.getHours() < 10 ? "0" : "") + time.getHours()}:${
-              (time.getMinutes() < 10 ? "0" : "") + time.getMinutes()
-            }`}
+            time={getTimeFromDate(time)}
             key={id}
           />
         );
@@ -314,21 +207,9 @@ const Chat = () => {
   };
 
   const noteBox = () => {
-    console.log("todayNotes", todayNotes);
     return todayNotes.reduce((filtered, note) => {
-      const { id, text, title, updatedAt } = note;
-      const time = new Date(updatedAt);
       filtered.push(
-        <NoteBox
-          noteId={id}
-          title={title}
-          text={text}
-          time={`${(time.getHours() < 10 ? "0" : "") + time.getHours()}:${
-            (time.getMinutes() < 10 ? "0" : "") + time.getMinutes()
-          }`}
-          onClick={setSelectedNote}
-          key={id}
-        />
+        <NoteBox note={note} onClick={setSelectedNote} key={note.id} />
       );
       return filtered;
     }, []);
@@ -385,16 +266,83 @@ const Chat = () => {
       .catch((error) => console.log(error));
 
     setMessage("");
+    setSubject("This message is from SpikeNow Replica");
   };
 
-  const onAddNote = async (title, text) => {
+  const onSaveNote = async (noteToSave) => {
+    const { title, text, id } = noteToSave;
     setIsAddingNote(true);
+    // console.log("id?", id);
+    if (id) {
+      console.log(id);
+      updateNote(title, text, id).then((data) => {
+        console.log(data);
+        alert(`Note with the title: ${data.title} updated!`);
+        setShowNote(false);
+        setIsAddingNote(false);
+      });
+      return;
+    }
     addNote(title, text, userInfo.id).then((data) => {
       console.log(data);
       alert(`Note with the title: ${data.title} added!`);
       setShowNote(false);
       setIsAddingNote(false);
     });
+    return;
+  };
+
+  const onDeleteNote = async (noteID) => {
+    setIsDeletingNote(true);
+    deleteNote(noteID).then((data) => {
+      console.log(data);
+      alert(`Noted with ID : ${noteID} deleted!`);
+      setShowNote(false);
+      setIsDeletingNote(false);
+    });
+  };
+
+  const onSaveTask = async (taskToSave) => {
+    const { title, status, todo, id } = taskToSave;
+    console.log(status);
+    setIsAddingTask(true);
+    // console.log("id?", id);
+    if (id) {
+      console.log(id);
+      updateTask(title, status, todo, id).then((data) => {
+        console.log(data);
+        alert(`Task with the title: ${data.title} updated!`);
+        setShowTask(false);
+        setIsAddingTask(false);
+      });
+      return;
+    }
+    addTask(title, status, todo, userInfo.id).then((data) => {
+      console.log(data);
+      alert(`Task with the title: ${data.title} added!`);
+      setShowTask(false);
+      setIsAddingTask(false);
+    });
+    return;
+  };
+
+  const onDeleteTask = async (taskID) => {
+    setIsDeletingTask(true);
+    deleteTask(taskID).then((data) => {
+      console.log(data);
+      alert(`Task with ID : ${taskID} deleted!`);
+      setShowTask(false);
+      setIsDeletingTask(false);
+    });
+  };
+
+  const taskBox = () => {
+    return todayTasks.reduce((filtered, task) => {
+      filtered.push(
+        <TaskBox task={task} onClick={setSelectedTask} key={task.id} />
+      );
+      return filtered;
+    }, []);
   };
 
   return (
@@ -407,56 +355,41 @@ const Chat = () => {
           <ChatSideBar
             noteBoxes={noteBox()}
             chatBoxes={chatBox()}
-            setShow={setShow}
+            taskBoxes={taskBox()}
+            setShowBody={setShowBody}
+            activeNavButton={activeNavButton}
+            setActiveNavButton={setActiveNavButton}
+            setShowNewEmail={setShowNewEmail}
             setShowOptions={setShowOptions}
+            onClick={setSelectedContact}
           />
         </Col>
         <Col
           md={8}
           className="border-0 m-0 p-0 bg-light min-vh-100 d-flex flex-column"
         >
-          {isChatLoading ? (
-            <div
-              style={{
-                position: "absolute",
-                top: "0",
-                left: "0",
-                width: "100%",
-                height: "100%",
-                backgroundColor: "rgba(255,255,255,0.9)",
-                zIndex: "10",
-              }}
-              className="d-flex justify-content-center align-items-center"
-            >
-              <Spinner
-                as="span"
-                animation="grow"
-                size="xl"
-                role="status"
-                aria-hidden="true"
-              />
-            </div>
-          ) : (
-            ""
-          )}
+          <LoadingOverlay isLoading={isChatLoading} />
           <ChatBody
             onSubmit={onSend}
             receiverName={selectedName}
             receiverEmail={selectedEmail}
+            setSelectedEmail={setSelectedEmail}
             message={message}
+            subject={subject}
+            setSubject={setSubject}
             setMessage={setMessage}
             isShowBody={showBody}
             setShowBody={setShowBody}
             bubble={bubble}
             isSending={isSending}
-            setShow={setShow}
+            setShowNewEmail={setShowNewEmail}
             setShowOptions={setShowOptions}
             setNewEmail={setNewEmail}
           />
         </Col>
       </Row>
       <NewEmail
-        show={show}
+        showNewEmail={showNewEmail}
         showOptions={showOptions}
         handleClose={handleClose}
         newEmail={newEmail}
@@ -469,11 +402,24 @@ const Chat = () => {
         isSending={isSending}
       />
       <NewNote
-        setShow={setShow}
+        setShowNewEmail={setShowNewEmail}
         showNote={showNote}
         setShowNote={setShowNote}
         isAddingNote={isAddingNote}
-        onSubmit={onAddNote}
+        selectedNote={selectedNote}
+        onSubmit={onSaveNote}
+        onDelete={onDeleteNote}
+      />
+
+      <NewTask
+        setShowNewEmail={setShowNewEmail}
+        showTask={showTask}
+        setShowTask={setShowTask}
+        isAddingTask={isAddingTask}
+        isDeletingTask={isDeletingTask}
+        selectedTask={selectedTask}
+        onSubmit={onSaveTask}
+        onDelete={onDeleteTask}
       />
     </Container>
   );
