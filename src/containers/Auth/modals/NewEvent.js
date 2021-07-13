@@ -170,7 +170,7 @@ const NewEvent = ({
               </Button>
             </div>
             {inviteList.map((guest, index) => (
-              <Form.Group className="d-flex">
+              <Form.Group className="d-flex" key={index}>
                 <Form.Control
                   type="email"
                   name="email"

@@ -23,10 +23,12 @@ export const sortEmail = (
   sort = "desc"
 ) => {
   let prevSender = [];
-  console.log(emails);
   const reduce = emails.reduce(function (filtered, option) {
     // return filtered.includes(option) ? filtered : [...filtered, option];
-    const { id, snippet, payload } = option;
+    const { id, snippet, payload, labelIds } = option;
+    if (snippet === "") {
+      return filtered;
+    }
     const senderString = payload.headers.find((data) => {
       return data.name === "From" || data.name === "from";
     });
@@ -108,6 +110,7 @@ export const sortEmail = (
       snippet,
       time,
       content,
+      labelIds,
     });
 
     return filtered;
@@ -145,6 +148,7 @@ export async function getEmails() {
   console.log("getting");
   const res = await myAxios.get("/getEmails");
   const data = await res.data;
+  console.log(data);
   return data;
 }
 
@@ -242,6 +246,23 @@ export async function deleteTask(taskID) {
   return data;
 }
 
+export async function starEmail(emailId, isStarred) {
+  const res = await myAxios.post("/starChangeEmail", {
+    emailId,
+    isStarred,
+  });
+  const data = await res.data;
+  return data;
+}
+
+export async function trashEmail(emailId) {
+  const res = await myAxios.post("/trashEmail", {
+    emailId,
+  });
+  const data = await res.data;
+  return data;
+}
+
 export const letterColors = (letter) => {
   const alphabets = [
     { letter: "A", color: "#B54168" },
@@ -272,6 +293,8 @@ export const letterColors = (letter) => {
     { letter: "Z", color: "#F18E83" },
   ];
   const found = alphabets.find((data) => data.letter === letter);
-  console.log(found);
+  if (!found) {
+    return { color: "#007bff" };
+  }
   return found;
 };

@@ -3,21 +3,22 @@ import { GrNotes } from "react-icons/gr";
 import { Card } from "react-bootstrap";
 import { getTimeFromDate } from "../../../components/GlobalHelpers";
 
-const ContactsBox = ({ note, onClick }) => {
-  const { id, text, title, updatedAt } = note;
-  const time = new Date(updatedAt);
+const EventBox = ({ event, onClick }) => {
+  console.log(event);
+  const { description, summary, updated } = event;
+  const time = new Date(updated);
   function removeTags(str) {
     if (str === null || str === "") return false;
     else str = str.toString();
 
     return str.replace(/(<([^>]+)>)/gi, "");
   }
-  const textStripped = removeTags(text);
+  const textStripped = removeTags(description);
   return (
     <Card
       className="rounded-0 border-0 p-3"
       id="chat-box"
-      onClick={() => onClick([note])}
+      onClick={() => onClick([event])}
     >
       <div className="d-flex">
         <div className="mr-3 my-auto">
@@ -31,8 +32,8 @@ const ContactsBox = ({ note, onClick }) => {
           </div>
         </div>
         <div style={{ lineHeight: "1rem" }}>
-          <h6 className="m-0">{title}</h6>
-          <small className="d-block">Note</small>
+          <h6 className="m-0">{summary}</h6>
+          <small className="d-block">Event</small>
           <small className="text-muted">
             {textStripped.length > 50
               ? textStripped.substring(0, 50 - 3) + "..."
@@ -47,4 +48,4 @@ const ContactsBox = ({ note, onClick }) => {
   );
 };
 
-export default ContactsBox;
+export default EventBox;

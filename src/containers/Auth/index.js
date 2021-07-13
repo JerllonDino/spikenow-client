@@ -55,6 +55,7 @@ const Chat = () => {
   const [newEmail, setNewEmail] = useState("");
   const [newSubject, setNewSubject] = useState("");
   const [newMessage, setNewMessage] = useState("");
+  const [selectedMessage, setSelectedMessage] = useState([]);
   const [showOptions, setShowOptions] = useState("");
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [isAddingTask, setIsAddingTask] = useState(false);
@@ -144,8 +145,16 @@ const Chat = () => {
       const user = connectedUsers.find((user) => user.userID === from);
       console.log("from pm", connectedUsers);
       if (user && user.email === selectedEmail) {
-        const chat = <ChatBubble key={content[0].id} message={content[0]} />;
-        setBubble([...bubble, chat]);
+        const receivedMessage = [...selectedMessage, content[0]];
+        setSelectedMessage(receivedMessage);
+        // const chat = (
+        //   <ChatBubble
+        //     key={content[0].id}
+        //     message={content[0]}
+        //     setBubble={setBubble}
+        //   />
+        // );
+        // setBubble([...bubble, chat]);
       }
       content[0].time = new Date(content[0].time);
       content[0].contact = content[0].sender;
@@ -165,6 +174,12 @@ const Chat = () => {
     setShowNewEmail(false);
   };
 
+  const filterBubble = (messageId) => {
+    const newBubble = selectedMessage.filter((data) => data.id !== messageId);
+    setSelectedMessage(newBubble);
+    setActiveNavButton("chat");
+  };
+
   const setSelectedContact = async (email, name) => {
     setShowBody(true);
     if (email !== selectedEmail) {
@@ -174,10 +189,8 @@ const Chat = () => {
 
       setIsChatLoading(true);
       getMessages(email, userInfo.email).then((selectedMessages) => {
-        const chat = selectedMessages.map((message) => (
-          <ChatBubble key={message.id} message={message} />
-        ));
-        setBubble(chat);
+        setSelectedMessage(selectedMessages);
+
         setIsChatLoading(false);
         console.log("chatloaded");
       });
@@ -215,6 +228,17 @@ const Chat = () => {
     }, []);
   };
 
+  const chatBubble = () => {
+    return selectedMessage.map((message) => {
+      return (
+        <ChatBubble
+          key={message.id}
+          message={message}
+          filterBubble={filterBubble}
+        />
+      );
+    });
+  };
   const onSend = async (newEmail, newSubject, newMessage) => {
     console.log("sending");
     setIsSending(true);
@@ -241,8 +265,17 @@ const Chat = () => {
           "asc"
         );
         if (selectedEmail === email[0].contact.email) {
-          const oneBubble = <ChatBubble key={email[0].id} message={email[0]} />;
-          setBubble([...bubble, oneBubble]);
+          const sentMessage = [...selectedMessage, email[0]];
+          setSelectedMessage(sentMessage);
+          // const oneBubble = (
+          //   <ChatBubble
+          //     key={email[0].id}
+          //     message={email[0]}
+          //     setBubble={setBubble}
+          //     bubble={bubble}
+          //   />
+          // );
+          // setBubble([...bubble, oneBubble]);
         }
 
         email[0].time = new Date(email[0].time);
@@ -380,7 +413,7 @@ const Chat = () => {
             setMessage={setMessage}
             isShowBody={showBody}
             setShowBody={setShowBody}
-            bubble={bubble}
+            bubble={chatBubble()}
             isSending={isSending}
             setShowNewEmail={setShowNewEmail}
             setShowOptions={setShowOptions}

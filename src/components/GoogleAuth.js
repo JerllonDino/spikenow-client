@@ -41,7 +41,7 @@ export const Login = ({ text }) => {
       )}
       onSuccess={handleLogin}
       onFailure={handleFailure}
-      scope="https://mail.google.com/ https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/contacts https://www.googleapis.com/auth/contacts.other.readonly"
+      scope="https://mail.google.com/ https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/contacts.other.readonly"
       cookiePolicy={"single_host_origin"}
       accessType="offline"
       responseType="code"

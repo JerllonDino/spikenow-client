@@ -224,10 +224,11 @@ const ChatSideBar = ({
         );
 
       case "contacts":
-        return contacts.map(({ emailAddresses }) => {
+        return contacts.map(({ emailAddresses }, index) => {
           if (emailAddresses[0].value !== userInfo.email) {
             return (
               <ChatBox
+                key={index}
                 email={emailAddresses[0].value}
                 contact={emailAddresses[0].value}
                 onClick={onClick}
@@ -239,6 +240,7 @@ const ChatSideBar = ({
       case "group":
         return (
           <>
+            <h6>Categories</h6>
             <GroupBox category={0} />
             <GroupBox category={1} />
             <GroupBox category={2} />
