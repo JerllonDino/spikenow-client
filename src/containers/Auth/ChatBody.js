@@ -24,9 +24,11 @@ const ChatBody = ({
   setShowNewEmail,
   setShowOptions,
   setNewEmail,
+  selectedGroupChat,
 }) => {
   const [isFocusMessage, setIsFocusMessage] = useState(false);
   const messagesEndRef = useRef(null);
+  const [isGroupChat, setIsGroupChat] = useState(false);
   const handleShow = () => {
     setShowOptions(false);
     setNewEmail(receiverEmail);
@@ -37,6 +39,14 @@ const ChatBody = ({
     setShowBody(false);
     setSelectedEmail("");
   };
+
+  useEffect(() => {
+    if (selectedGroupChat._id) {
+      setIsGroupChat(true);
+    } else {
+      setIsGroupChat(false);
+    }
+  }, [selectedGroupChat]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -127,7 +137,7 @@ const ChatBody = ({
               type="text"
               style={{ fontSize: ".7rem", fontWeight: "bold" }}
               className={`rounded-0 border-right-0 border-left-0 shadow-none m-0 ${
-                isFocusMessage ? "d-inline-block" : "d-none"
+                isFocusMessage && !isGroupChat ? "d-inline-block" : "d-none"
               }`}
               value={subject}
               onChange={(e) => setSubject(e.target.value)}

@@ -8,17 +8,7 @@ const ChatBubble = ({ message, filterBubble }) => {
   const { userInfo } = useContext(AuthorizedUserContext);
   const [isShowOptions, setIsShowOptions] = useState(false);
   const [isStar, setIsStar] = useState(false);
-  const {
-    id,
-    contact,
-    sender,
-    receiver,
-    subject,
-    snippet,
-    time,
-    content,
-    labelIds,
-  } = message;
+  const { id, sender, subject, content, labelIds } = message;
 
   useEffect(() => {
     const findStar = labelIds.find((label) => label === "STARRED");

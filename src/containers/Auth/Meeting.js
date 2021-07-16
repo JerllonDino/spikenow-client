@@ -2,13 +2,16 @@ import { useState, useEffect, createRef, useRef, useContext } from "react";
 import Peer from "peerjs";
 import socket from "../../socket";
 import { AuthorizedUserContext } from "../../components/AuthorizedRoutes";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 socket.connect();
 
 const peer = new Peer(undefined, {
-  host: "localhost",
-  port: "3001",
-  path: "/peerjs",
+  host: process.env.REACT_APP_BASEURL,
+  port: process.env.REACT_APP_BASEPORT,
+  path: "/",
 });
 
 const Media = ({ isMuted, stream, isVideo, name }) => {

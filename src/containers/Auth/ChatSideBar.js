@@ -14,6 +14,12 @@ import NewEvent from "./modals/NewEvent";
 import ChatBox from "./boxes/ChatBox";
 import { AuthorizedUserContext } from "../../components/AuthorizedRoutes";
 import GroupBox from "./boxes/GroupBox";
+import NewGroupChat from "./modals/NewGroupChat";
+import {
+  addGroupChat,
+  updateGroupChat,
+  deleteGroupChat,
+} from "./helpers/ChatHelpers";
 
 const ChatSideBar = ({
   noteBoxes,
@@ -24,6 +30,8 @@ const ChatSideBar = ({
   activeNavButton,
   setActiveNavButton,
   setShowBody,
+  selectedGroupChat,
+  setSelectedGroupChat,
   onClick,
 }) => {
   const { userInfo } = useContext(AuthorizedUserContext);
@@ -34,7 +42,14 @@ const ChatSideBar = ({
   const [isAddingEvent, setIsAddingEvent] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState([]);
   const [isDeletingEvent, setIsDeletingEvent] = useState(false);
+  const [isShowGroupChat, setIsShowGroupChat] = useState(false);
+  const [isAddingGroupChat, setIsAddingGroupChat] = useState(false);
+  const [isDeletingGroupChat, setIsDeletingGroupChat] = useState(false);
+
+  const [groupChatCategory, setGroupChatCategory] = useState(6);
+  const [groupChats, setGroupChats] = useState([]);
   const [contacts, setContacts] = useState([]);
+
   const handleShow = () => {
     setShowOptions(true);
     setShowNewEmail(true);
@@ -84,6 +99,10 @@ const ChatSideBar = ({
 
     console.log(timezone);
     switch (activeNavButton) {
+      case "chat":
+        setShowBody(false);
+        setSelectedGroupChat({});
+        break;
       case "events":
         setShowBody(false);
 
@@ -100,8 +119,15 @@ const ChatSideBar = ({
 
       case "contacts":
         setShowBody(false);
+
         myAxios.get("/getOtherContacts").then(({ data }) => {
           setContacts(data.otherContacts);
+        });
+        break;
+      case "group":
+        setShowBody(false);
+        myAxios.get("/getGroupChat").then(({ data }) => {
+          setGroupChats(data);
         });
         break;
       default:
@@ -158,6 +184,80 @@ const ChatSideBar = ({
         console.log("deleted");
       })
       .catch((error) => console.log(error));
+  };
+
+  const handleShowGroupChat = (category) => {
+    setSelectedGroupChat({});
+    setGroupChatCategory(category);
+    setIsShowGroupChat(true);
+  };
+
+  const handleShowExistingGroup = (groupChat) => {
+    setSelectedGroupChat(groupChat);
+    setGroupChatCategory(groupChat.category);
+    setIsShowGroupChat(true);
+  };
+
+  const handleSelectGroupChat = (groupChat) => {
+    setSelectedGroupChat(groupChat);
+    let emails = "";
+    groupChat.members.forEach((member, index) => {
+      if (member.email !== userInfo.email) {
+        emails += `${member.email}${
+          groupChat.members.length - 1 !== index ? ", " : ""
+        }`;
+      }
+    });
+    if (groupChat.creatorEmail !== userInfo.email) {
+      emails += `, ${groupChat.creatorEmail}`;
+    }
+    console.log("emails", emails);
+
+    onClick(emails, groupChat.name, groupChat);
+  };
+
+  const onSaveGroupChat = ({ groupName, memberList, creator, id }) => {
+    setIsAddingGroupChat(true);
+    if (id) {
+      // const newGroupChats = groupChats.filter((group) => group._id !== id);
+      // setGroupChats(newGroupChats);
+      updateGroupChat({
+        groupName,
+        memberList,
+        groupChatCategory,
+        creator,
+        id: id,
+      }).then((data) => {
+        setIsAddingGroupChat(false);
+        setIsShowGroupChat(false);
+        setActiveNavButton("group");
+        console.log("updated");
+      });
+    } else {
+      addGroupChat({
+        groupName,
+        memberList,
+        groupChatCategory,
+        creator,
+      }).then((data) => {
+        setIsAddingGroupChat(false);
+        setIsShowGroupChat(false);
+        setGroupChats([...groupChats, data]);
+        console.log("added");
+      });
+    }
+  };
+
+  const onDeleteGroupChat = (id) => {
+    setIsDeletingGroupChat(true);
+    const newGroupChats = groupChats.filter((group) => group._id !== id);
+    setGroupChats(newGroupChats);
+    deleteGroupChat(id).then((data) => {
+      setIsDeletingGroupChat(false);
+      setIsShowGroupChat(false);
+      setShowBody(false);
+      console.log(data);
+    });
   };
 
   const viewSwitch = () => {
@@ -240,13 +340,24 @@ const ChatSideBar = ({
       case "group":
         return (
           <>
+            <h6 className={`${groupChats.length > 0 ? "" : "d-none"}`}>
+              Recent
+            </h6>
+            {groupChats.map((group) => (
+              <GroupBox
+                category={group.category}
+                onClick={handleShowExistingGroup}
+                groupChat={group}
+                onSelect={handleSelectGroupChat}
+              />
+            ))}
             <h6>Categories</h6>
-            <GroupBox category={0} />
-            <GroupBox category={1} />
-            <GroupBox category={2} />
-            <GroupBox category={3} />
-            <GroupBox category={4} />
-            <GroupBox category={5} />
+            <GroupBox category={0} onClick={handleShowGroupChat} />
+            <GroupBox category={1} onClick={handleShowGroupChat} />
+            <GroupBox category={2} onClick={handleShowGroupChat} />
+            <GroupBox category={3} onClick={handleShowGroupChat} />
+            <GroupBox category={4} onClick={handleShowGroupChat} />
+            <GroupBox category={5} onClick={handleShowGroupChat} />
           </>
         );
 
@@ -352,6 +463,16 @@ const ChatSideBar = ({
         onDelete={deleteEvent}
         selectedEvent={selectedEvent}
         setSelectedEvent={setSelectedEvent}
+      />
+      <NewGroupChat
+        isShowGroupChat={isShowGroupChat}
+        setIsShowGroupChat={setIsShowGroupChat}
+        isAddingGroupChat={isAddingGroupChat}
+        isDeletingGroupChat={isDeletingGroupChat}
+        onSubmit={onSaveGroupChat}
+        onDelete={onDeleteGroupChat}
+        selectedGroupChat={selectedGroupChat}
+        setSelectedGroupChat={setSelectedGroupChat}
       />
     </>
   );

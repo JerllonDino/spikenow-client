@@ -3,7 +3,8 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const baseURL = process.env.REACT_APP_BASEURL;
+const baseURL =
+  process.env.REACT_APP_BASEURL + ":" + process.env.REACT_APP_BASEPORT;
 
 const myAxios = axios.create({
   baseURL: baseURL,

@@ -30,10 +30,12 @@ import {
   addTask,
   updateTask,
   deleteTask,
+  getMessagesByGroup,
 } from "./helpers/ChatHelpers";
 import { getTimeFromDate } from "../../components/GlobalHelpers";
 import NewTask from "./modals/NewTask";
 import TaskBox from "./boxes/TaskBox";
+import { useRef } from "react";
 
 const Chat = () => {
   const { userInfo } = useContext(AuthorizedUserContext);
@@ -45,7 +47,6 @@ const Chat = () => {
   const [subject, setSubject] = useState(
     "This message is from SpikeNow Replica"
   );
-  const [bubble, setBubble] = useState();
   const [isSending, setIsSending] = useState(false);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [connectedUsers, setConnectedUsers] = useState([]);
@@ -63,6 +64,7 @@ const Chat = () => {
   const [todayTasks, setTodayTasks] = useState([]);
   const [selectedNote, setSelectedNote] = useState([]);
   const [selectedTask, setSelectedTask] = useState([]);
+  const [selectedGroupChat, setSelectedGroupChat] = useState({});
   const [isDeletingNote, setIsDeletingNote] = useState(false);
   const [isDeletingTask, setIsDeletingTask] = useState(false);
   const [activeNavButton, setActiveNavButton] = useState("chat");
@@ -78,16 +80,51 @@ const Chat = () => {
     setTodayTasks(tasks);
     console.log(tasks);
   }, []);
+  const handlePrivateMessage = useCallback(
+    ({ content, from, to }) => {
+      console.log("current emails retreived", emails);
+      const user = connectedUsers.find((user) => user.userID === from);
+      console.log("from pm", connectedUsers);
+      if (user && user.email === selectedEmail) {
+        const receivedMessage = [...selectedMessage, content[0]];
+        setSelectedMessage(receivedMessage);
+      }
+      content[0].time = new Date(content[0].time);
+      content[0].contact = content[0].sender;
+
+      const newEmails = addReceivedEmails([...emails, content[0]]);
+      setEmails(newEmails);
+    },
+    [emails, connectedUsers, selectedEmail]
+  );
+
+  const handleGroupMessage = useCallback(({ content, from }) => {
+    getMessagesByGroup(from, userInfo.email).then((data) => {
+      console.log(data);
+      if (data) {
+        setSelectedMessage([...data, content[0]]);
+      } else {
+        setSelectedMessage([]);
+      }
+
+      setIsChatLoading(false);
+      console.log("chatloaded");
+    });
+  }, []);
 
   useEffect(() => {
+    console.log("first effect chat");
     if (activeNavButton === "chat") {
       socket.connect();
       const { id, email } = userInfo;
       socket.emit("join-chat-room", { id, email });
       getEmails().then((retrievedEmails) => {
-        const sortedEmails = sortEmail(userInfo.email, retrievedEmails);
-        setEmails(sortedEmails);
-        console.log("useEff got it");
+        if (retrievedEmails) {
+          const sortedEmails = sortEmail(userInfo.email, retrievedEmails);
+          console.log(sortedEmails);
+          setEmails(sortedEmails);
+          console.log("useEff got it");
+        }
       });
     }
     return () => {
@@ -96,18 +133,21 @@ const Chat = () => {
   }, [activeNavButton]);
 
   useEffect(() => {
+    console.log("second effect note");
     if (!isAddingNote || !isDeletingNote) {
       getNotes(userInfo.id).then(handleTodayNotes);
     }
   }, [isAddingNote, isDeletingNote, handleTodayNotes, userInfo.id]);
 
   useEffect(() => {
+    console.log("third effect task");
     if (!isAddingTask || !isDeletingTask) {
       getTasks(userInfo.id).then(handleTodayTasks);
     }
   }, [isAddingTask, isDeletingTask, handleTodayTasks, userInfo.id]);
 
   useEffect(() => {
+    console.log("fifth effect group message");
     socket.on("private message", handlePrivateMessage);
 
     socket.on("users", (users) => {
@@ -129,6 +169,10 @@ const Chat = () => {
       setConnectedUsers(newConnectedUsers);
     });
 
+    socket.on("disconnect", () => {
+      setConnectedUsers([]);
+    });
+
     return () => {
       socket.off("join-chat-room");
       socket.off("users");
@@ -136,34 +180,51 @@ const Chat = () => {
       socket.off("user connected");
       socket.off("user disconnected");
     };
-  }, [emails, bubble]);
+  }, [emails]);
 
-  const handlePrivateMessage = useCallback(
-    ({ content, from, to }) => {
-      console.log("bubbles", bubble);
-      console.log("current emails retreived", emails);
-      const user = connectedUsers.find((user) => user.userID === from);
-      console.log("from pm", connectedUsers);
-      if (user && user.email === selectedEmail) {
-        const receivedMessage = [...selectedMessage, content[0]];
-        setSelectedMessage(receivedMessage);
-        // const chat = (
-        //   <ChatBubble
-        //     key={content[0].id}
-        //     message={content[0]}
-        //     setBubble={setBubble}
-        //   />
-        // );
-        // setBubble([...bubble, chat]);
-      }
-      content[0].time = new Date(content[0].time);
-      content[0].contact = content[0].sender;
+  useEffect(() => {
+    if (selectedGroupChat._id) {
+      socket.connect();
+      const { id, email } = userInfo;
+      socket.emit("join-group", {
+        groupId: selectedGroupChat._id,
+        id,
+        email,
+      });
+    }
+  }, [selectedGroupChat]);
 
-      const newEmails = addReceivedEmails([...emails, content[0]]);
-      setEmails(newEmails);
-    },
-    [emails, bubble, connectedUsers, selectedEmail]
-  );
+  useEffect(() => {
+    console.log("fourth effect group message");
+
+    socket.on("group-message", handleGroupMessage);
+
+    socket.on("users-group", (users) => {
+      console.log("connected users retrieved");
+      setConnectedUsers(users);
+    });
+    socket.on("user-group-connected", (user) => {
+      console.log("user just connected");
+      setConnectedUsers([...connectedUsers, user]);
+    });
+
+    socket.on("user-group-disconnected", (userID) => {
+      // socket.removeAllListeners("private message");
+      const newConnectedUsers = connectedUsers.filter(
+        (user) => user.userID !== userID
+      );
+      console.log("New Connected Users:", newConnectedUsers);
+      setConnectedUsers(newConnectedUsers);
+      console.log("");
+    });
+    return () => {
+      socket.off("join-group");
+      socket.off("group-message");
+      socket.off("users-group");
+      socket.off("user-group-connected");
+      socket.off("user-group-disconnected");
+    };
+  }, [selectedGroupChat]);
 
   const handleClose = (modalShow = "") => {
     setNewEmail("");
@@ -180,16 +241,35 @@ const Chat = () => {
     setActiveNavButton("chat");
   };
 
-  const setSelectedContact = async (email, name) => {
+  const setSelectedContact = (email, name, group = {}) => {
     setShowBody(true);
-    if (email !== selectedEmail) {
-      setSelectedName(name);
-      setSelectedEmail(email);
-      setShowBody(true);
+    setSelectedName(name);
+    setSelectedEmail(email);
 
+    if (email !== selectedEmail) {
+      if (group._id) {
+        setIsChatLoading(true);
+        getMessagesByGroup(group._id, userInfo.email).then((data) => {
+          console.log(data);
+          if (data) {
+            setSelectedMessage(data);
+          } else {
+            setSelectedMessage([]);
+          }
+
+          setIsChatLoading(false);
+          console.log("chatloaded");
+        });
+        return;
+      }
       setIsChatLoading(true);
       getMessages(email, userInfo.email).then((selectedMessages) => {
-        setSelectedMessage(selectedMessages);
+        console.log(selectedMessages);
+        if (selectedMessage) {
+          setSelectedMessage(selectedMessages);
+        } else {
+          setSelectedMessage([]);
+        }
 
         setIsChatLoading(false);
         console.log("chatloaded");
@@ -197,13 +277,28 @@ const Chat = () => {
     }
   };
 
+  const listenTrashAll = (id) => {
+    const filterDeleted = emails.filter((email) => email.id !== id);
+    setEmails(filterDeleted);
+  };
+
   const chatBox = () => {
     return emails.reduce((filtered, email) => {
-      const { id, contact, sender, receiver, subject, snippet, time } = email;
-
+      const {
+        id,
+        contact,
+        sender,
+        receiver,
+        subject,
+        snippet,
+        time,
+        labelIds,
+      } = email;
+      const findStar = labelIds.find((label) => label === "STARRED");
       if (sender.email !== receiver.email) {
         filtered.push(
           <ChatBox
+            id={id}
             contact={contact.name}
             subject={subject ? subject.value : ""}
             snippet={snippet}
@@ -211,6 +306,8 @@ const Chat = () => {
             onClick={setSelectedContact}
             email={contact.email}
             time={getTimeFromDate(time)}
+            isStarred={findStar ? true : false}
+            listener={listenTrashAll}
             key={id}
           />
         );
@@ -242,10 +339,23 @@ const Chat = () => {
   const onSend = async (newEmail, newSubject, newMessage) => {
     console.log("sending");
     setIsSending(true);
+
+    let to = newEmail ? newEmail : selectedEmail;
+    let messageSubject = newSubject ? newSubject : subject;
+    let messageContent = newMessage ? newMessage : message;
+
     if (!selectedEmail && !newEmail) {
       alert("no email selected");
       setIsSending(false);
       return;
+    }
+
+    if (selectedGroupChat._id) {
+      messageSubject = `${userInfo.full_name.split(" ")[0]} from ${
+        selectedGroupChat.name
+      } @Spikenow Replica Group`;
+      messageContent += `<br><footer style="display:none"> From:${selectedGroupChat._id}@spikenowreplica.group</footer>`;
+      console.log(to);
     }
 
     if (!message && !newEmail) {
@@ -253,9 +363,7 @@ const Chat = () => {
       setIsSending(false);
       return;
     }
-    const to = newEmail ? newEmail : selectedEmail;
-    const messageSubject = newSubject ? newSubject : subject;
-    const messageContent = newMessage ? newMessage : message;
+
     sendMessage(to, messageSubject, messageContent)
       .then((response) => {
         const email = sortEmail(
@@ -264,32 +372,32 @@ const Chat = () => {
           false,
           "asc"
         );
+        console.log("sentEmail", email);
         if (selectedEmail === email[0].contact.email) {
           const sentMessage = [...selectedMessage, email[0]];
           setSelectedMessage(sentMessage);
-          // const oneBubble = (
-          //   <ChatBubble
-          //     key={email[0].id}
-          //     message={email[0]}
-          //     setBubble={setBubble}
-          //     bubble={bubble}
-          //   />
-          // );
-          // setBubble([...bubble, oneBubble]);
         }
 
-        email[0].time = new Date(email[0].time);
-        email[0].contact = email[0].receiver;
-        const newEmails = addReceivedEmails([...emails, email[0]]);
-        setEmails(newEmails);
-        const socketReceiver = connectedUsers.find(
-          (user) => user.email === selectedEmail
-        );
-        console.log("Emitted", connectedUsers, selectedEmail);
-        if (socketReceiver) {
-          socket.emit("private message", {
+        if (!selectedGroupChat._id) {
+          email[0].time = new Date(email[0].time);
+          email[0].contact = email[0].receiver;
+          const newEmails = addReceivedEmails([...emails, email[0]]);
+          setEmails(newEmails);
+
+          const socketReceiver = connectedUsers.find(
+            (user) => user.email === selectedEmail
+          );
+          console.log("Emitted", connectedUsers, selectedEmail);
+          if (socketReceiver) {
+            socket.emit("private message", {
+              content: email,
+              to: socketReceiver.userID,
+            });
+          }
+        } else {
+          socket.emit("group-message", {
             content: email,
-            to: socketReceiver.userID,
+            to: selectedGroupChat._id,
           });
         }
 
@@ -390,8 +498,11 @@ const Chat = () => {
             chatBoxes={chatBox()}
             taskBoxes={taskBox()}
             setShowBody={setShowBody}
+            onSend={onSend}
             activeNavButton={activeNavButton}
             setActiveNavButton={setActiveNavButton}
+            setSelectedGroupChat={setSelectedGroupChat}
+            selectedGroupChat={selectedGroupChat}
             setShowNewEmail={setShowNewEmail}
             setShowOptions={setShowOptions}
             onClick={setSelectedContact}
@@ -418,6 +529,7 @@ const Chat = () => {
             setShowNewEmail={setShowNewEmail}
             setShowOptions={setShowOptions}
             setNewEmail={setNewEmail}
+            selectedGroupChat={selectedGroupChat}
           />
         </Col>
       </Row>

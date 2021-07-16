@@ -26,9 +26,7 @@ export const sortEmail = (
   const reduce = emails.reduce(function (filtered, option) {
     // return filtered.includes(option) ? filtered : [...filtered, option];
     const { id, snippet, payload, labelIds } = option;
-    if (snippet === "") {
-      return filtered;
-    }
+
     const senderString = payload.headers.find((data) => {
       return data.name === "From" || data.name === "from";
     });
@@ -81,7 +79,7 @@ export const sortEmail = (
         content = buff.toString("ascii");
         // console.log(option);
         if (payload.mimeType === "text/html") {
-          console.log(content);
+          // console.log(content);
         }
       } else {
         if (payload.parts.length > 0 && payload.parts[0].body.data) {
@@ -156,19 +154,27 @@ export async function getEmails() {
 export async function getMessages(email, userEmail) {
   const res = await myAxios.get(`/getMessages/${email}`);
   const data = await res.data;
-  const sortedMessages = sortEmail(userEmail, data, false, "asc");
+  const sortedMessages = data ? sortEmail(userEmail, data, false, "asc") : [];
+  return sortedMessages;
+}
+
+// Fetch Emails from a specific email address
+export async function getMessagesByGroup(groupID, userEmail) {
+  const res = await myAxios.get(`/getMessageGroup/${groupID}`);
+  const data = await res.data;
+  const sortedMessages = data ? sortEmail(userEmail, data, false, "asc") : [];
   return sortedMessages;
 }
 
 // Sends email to the given recipient (to)
-export async function sendMessage(to, subject, message) {
+export async function sendMessage(to, subject, message, from) {
   const res = await myAxios.post("/email", {
     to: to,
+    from: from,
     subject: subject,
     message: message,
   });
   const data = await res.data;
-  // alert(data.message);
   return data;
 }
 
@@ -258,6 +264,72 @@ export async function starEmail(emailId, isStarred) {
 export async function trashEmail(emailId) {
   const res = await myAxios.post("/trashEmail", {
     emailId,
+  });
+  const data = await res.data;
+  return data;
+}
+
+export async function trashConversation(email) {
+  const res = await myAxios.post("/trashConversation", {
+    email,
+  });
+  const data = await res.data;
+  return data;
+}
+
+export async function addGroupChat({
+  groupName,
+  memberList,
+  groupChatCategory,
+  creator,
+  id,
+}) {
+  const res = await myAxios.post("/addGroupChat", {
+    name: groupName,
+    members: memberList,
+    category: groupChatCategory,
+    creatorEmail: creator,
+  });
+  const data = await res.data;
+  return data;
+}
+
+export async function updateGroupChat({
+  groupName,
+  memberList,
+  groupChatCategory,
+  creator,
+  id,
+}) {
+  const res = await myAxios.post("/updateGroupChat", {
+    name: groupName,
+    members: memberList,
+    category: groupChatCategory,
+    creatorEmail: creator,
+    id,
+  });
+  const data = await res.data;
+  return data;
+}
+
+export async function deleteGroupChat(groupChatId) {
+  const res = await myAxios.delete(`/deleteGroupChat/${groupChatId}`);
+  const data = await res.data;
+  return data;
+}
+
+export async function sendMessageToGroup(groupID, message) {
+  const res = await myAxios.post("/messageGroup", {
+    groupID,
+    message,
+  });
+  const data = await res.data;
+  return data;
+}
+
+export async function deleteMessageFromGroup(messageID) {
+  const res = await myAxios.post("/deleteMessageGroup", {
+    id: messageID,
   });
   const data = await res.data;
   return data;
