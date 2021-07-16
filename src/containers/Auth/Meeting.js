@@ -9,8 +9,7 @@ dotenv.config();
 socket.connect();
 
 const peer = new Peer(undefined, {
-  host: process.env.REACT_APP_BASEURL,
-  port: process.env.REACT_APP_BASEPORT,
+  host: process.env.REACT_APP_BASE_HOST,
   path: "/",
 });
 
