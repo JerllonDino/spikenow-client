@@ -8,11 +8,6 @@ dotenv.config();
 
 socket.connect();
 
-const peer = new Peer(undefined, {
-  host: process.env.REACT_APP_BASE_HOST,
-  path: "/",
-});
-
 const Media = ({ isMuted, stream, isVideo, name }) => {
   console.log("is?", isVideo);
   const mediaRef = createRef();
@@ -63,6 +58,12 @@ const Meeting = ({ match }) => {
   const [myVideo, setMyVideo] = useState([]);
   const [receiverName, setReceiverName] = useState([]);
   const myStreamRef = useRef();
+
+  const peer = new Peer(undefined, {
+    host: process.env.REACT_APP_PEERJS_HOST,
+    port: process.env.REACT_APP_PEERJS_PORT,
+    path: "/",
+  });
 
   useEffect(() => {
     let mediaType = {

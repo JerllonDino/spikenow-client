@@ -2,7 +2,7 @@ import { io } from "socket.io-client";
 import dotenv from "dotenv";
 dotenv.config();
 
-const baseURL = process.env.REACT_APP_BASE;
+const baseURL = process.env.REACT_APP_BASE_URL;
 
 // const URL = baseURL;
 const socket = io(baseURL, { autoConnect: false });
