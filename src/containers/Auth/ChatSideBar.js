@@ -58,8 +58,12 @@ const ChatSideBar = ({
   const handleChangeDate = (date) => {
     console.log(date.getTime());
     setIsEventsLoading(true);
+    const endDate = new Date(date);
+    endDate.setHours(23);
+    endDate.setMinutes(59);
+    endDate.setSeconds(59);
     myAxios
-      .get(`/getEvents/${date.getTime()}`)
+      .get(`/getEvents/${date.getTime()}/${endDate.getTime()}`)
       .then((events) => {
         setIsEventsLoading(false);
         console.log(events.data.data.items);
@@ -105,10 +109,15 @@ const ChatSideBar = ({
         break;
       case "events":
         setShowBody(false);
+        const currentStart = new Date().getTime();
+        const currentEnd = new Date();
+        currentEnd.setHours(23);
+        currentEnd.setMinutes(59);
+        currentEnd.setSeconds(59);
 
         setIsEventsLoading(true);
         myAxios
-          .get(`/getEvents`)
+          .get(`/getEvents/${currentStart}/${currentEnd.getTime()}`)
           .then((events) => {
             setIsEventsLoading(false);
             console.log(events.data.data.items);

@@ -10,7 +10,6 @@ socket.connect();
 
 const peer = new Peer(undefined, {
   host: process.env.REACT_APP_BASE_HOST,
-  port: process.env.REACT_APP_BASE_PORT,
   path: "/",
 });
 
